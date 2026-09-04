@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#1a1d21">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Problemas · Máquinas de Solda</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+  :root{
+    --bg:#1a1d21;
+    --panel:#22262b;
+    --panel-2:#282d33;
+    --line:#383d44;
+    --text:#e8e6e1;
+    --muted:#9aa1a9;
+    --amber:#e8a33d;
+    --steel:#5b7c99;
+    --rust:#c1543c;
+    --ok:#5b8f6e; /* usado só como texto de status "resolvido", nunca como cor dominante */
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    min-height:100vh;
+    padding-bottom:100px;
+  }
+  .mono{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;}
+
+  header{
+    position:sticky; top:0; z-index:20;
+    background:var(--bg);
+    border-bottom:1px solid var(--line);
+    padding:18px 16px 14px;
+  }
+  .eyebrow{
+    font-size:11px; letter-spacing:.04em; color:var(--muted);
+    margin:0 0 4px;
+  }
+  h1{
+    font-family:"Arial Narrow","Helvetica Neue",sans-serif;
+    font-weight:700;
+    font-size:26px;
+    letter-spacing:.01em;
+    margin:0 0 12px;
+    color:var(--text);
+  }
+  h1 span{color:var(--amber);}
+
+  .searchbar{
+    display:flex; gap:8px;
+  }
+  .searchbar input{
+    flex:1;
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:11px 12px;
+    font-size:15px;
+    border-radius:2px;
+  }
+  .searchbar input:focus{outline:none; border-color:var(--steel);}
+  .filters{
+    display:flex; gap:6px; margin-top:10px; overflow-x:auto; padding-bottom:2px;
+  }
+  .chip{
+    flex:0 0 auto;
+    font-size:12.5px;
+    padding:6px 11px;
+    border:1px solid var(--line);
+    color:var(--muted);
+    background:transparent;
+    border-radius:2px;
+    white-space:nowrap;
+  }
+  .chip.active{
+    border-color:var(--amber);
+    color:var(--amber);
+  }
+
+  main{padding:14px 16px;}
+  .count{
+    font-size:12.5px; color:var(--muted); margin:2px 2px 12px;
+  }
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-left:3px solid var(--rust);
+    border-radius:2px;
+    margin-bottom:12px;
+    overflow:hidden;
+  }
+  .card.status-resolvido{border-left-color:var(--steel);}
+  .card-head{
+    padding:13px 14px 10px;
+    cursor:pointer;
+  }
+  .card-top{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:10px;
+  }
+  .card-ids{
+    display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px;
+  }
+  .tag{
+    font-size:11px;
+    padding:2px 7px;
+    border:1px solid var(--line);
+    color:var(--steel);
+    border-radius:2px;
+  }
+  .tag.err{color:var(--rust); border-color:#4a3530;}
+  .card-title{
+    font-size:16px; font-weight:600; margin:0; line-height:1.3;
+  }
+  .card-date{
+    font-size:11.5px; color:var(--muted); white-space:nowrap; padding-top:2px;
+  }
+  .status-badge{
+    font-size:11px; margin-top:8px; display:inline-block;
+    color:var(--muted);
+  }
+  .status-badge.resolvido{color:var(--ok);}
+  .status-badge.pendente{color:var(--amber);}
+
+  .card-body{
+    display:none;
+    padding:0 14px 16px;
+    border-top:1px solid var(--line);
+  }
+  .card.open .card-body{display:block;}
+  .card.open .card-head{border-bottom:0;}
+
+  .block{margin-top:14px;}
+  .block-label{
+    font-size:11px; color:var(--muted); letter-spacing:.03em; margin:0 0 5px;
+  }
+  .block p{
+    margin:0; font-size:14.5px; line-height:1.55; color:var(--text); white-space:pre-wrap;
+  }
+  .steps{margin:0; padding-left:18px; font-size:14.5px; line-height:1.6;}
+  .steps li{margin-bottom:6px;}
+
+  .card-actions{
+    display:flex; gap:10px; margin-top:16px; padding-top:12px; border-top:1px solid var(--line);
+  }
+  .card-actions button{
+    background:none; border:1px solid var(--line); color:var(--muted);
+    font-size:12.5px; padding:7px 12px; border-radius:2px;
+  }
+  .card-actions button.danger{color:var(--rust);}
+
+  .empty{
+    text-align:center; padding:60px 20px; color:var(--muted);
+  }
+  .empty .big{font-size:15px; color:var(--text); margin-bottom:6px;}
+  .empty .small{font-size:13px;}
+
+  .fab{
+    position:fixed; right:18px; bottom:22px; z-index:30;
+    width:56px; height:56px; border-radius:50%;
+    background:var(--amber); color:#1a1d21;
+    border:none; font-size:28px; font-weight:400;
+    box-shadow:0 4px 14px rgba(0,0,0,.4);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .fab:active{transform:scale(.95);}
+
+  .sheet-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.55);
+    z-index:40; display:none;
+  }
+  .sheet-overlay.show{display:block;}
+  .sheet{
+    position:fixed; left:0; right:0; bottom:0; z-index:41;
+    background:var(--panel); border-top:1px solid var(--line);
+    border-radius:10px 10px 0 0;
+    max-height:92vh; overflow-y:auto;
+    transform:translateY(100%);
+    transition:transform .22s ease;
+    padding:18px 16px 28px;
+  }
+  .sheet.show{transform:translateY(0);}
+  .sheet-title{font-size:18px; font-weight:700; margin:0 0 16px;}
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block; font-size:12px; color:var(--muted); margin-bottom:5px;
+  }
+  .field input, .field select, .field textarea{
+    width:100%; background:var(--panel-2); border:1px solid var(--line);
+    color:var(--text); padding:10px 11px; font-size:15px; border-radius:2px;
+    font-family:inherit;
+  }
+  .field textarea{resize:vertical; min-height:70px; line-height:1.5;}
+  .field input:focus, .field select:focus, .field textarea:focus{outline:none; border-color:var(--steel);}
+  .row2{display:flex; gap:10px;}
+  .row2 .field{flex:1;}
+
+  .sheet-buttons{display:flex; gap:10px; margin-top:6px;}
+  .sheet-buttons button{
+    flex:1; padding:13px; border-radius:2px; font-size:15px; border:none;
+  }
+  .btn-cancel{background:var(--panel-2); color:var(--muted); border:1px solid var(--line) !important;}
+  .btn-save{background:var(--amber); color:#1a1d21; font-weight:600;}
+
+  ::-webkit-scrollbar{width:0; height:0;}
+</style>
+</head>
+<body>
+
+<header>
+  <p class="eyebrow mono">REGISTRO TÉCNICO</p>
+  <h1>Problemas de <span>Solda</span></h1>
+  <div class="searchbar">
+    <input id="search" type="text" placeholder="Buscar máquina, erro, palavra-chave...">
+  </div>
+  <div class="filters" id="filters"></div>
+</header>
+
+<main>
+  <p class="count" id="count"></p>
+  <div id="list"></div>
+</main>
+
+<button class="fab" onclick="openSheet()">+</button>
+
+<div class="sheet-overlay" id="overlay" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <p class="sheet-title" id="sheetTitle">Novo problema</p>
+
+  <div class="row2">
+    <div class="field">
+      <label>Máquina / Robô</label>
+      <input id="f-maquina" type="text" placeholder="Ex: Robô 2, MS-14...">
+    </div>
+    <div class="field">
+      <label>Código do erro</label>
+      <input id="f-codigo" type="text" class="mono" placeholder="Ex: 34318">
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Título do problema</label>
+    <input id="f-titulo" type="text" placeholder="Ex: Erro de saturação do inversor">
+  </div>
+
+  <div class="row2">
+    <div class="field">
+      <label>Data</label>
+      <input id="f-data" type="date">
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select id="f-status">
+        <option value="pendente">Pendente</option>
+        <option value="resolvido">Resolvido</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Momento em que a falha ocorre</label>
+    <input id="f-momento" type="text" placeholder="Ex: Durante movimento do eixo 5 / ao ligar Motors On">
+  </div>
+
+  <div class="field">
+    <label>Descrição do erro</label>
+    <textarea id="f-descricao" placeholder="O que o erro indica, comportamento observado..."></textarea>
+  </div>
+
+  <div class="field">
+    <label>Passos de diagnóstico / solução (um por linha)</label>
+    <textarea id="f-passos" style="min-height:140px" placeholder="1. Checagem mecânica...&#10;2. Inspeção de cabos...&#10;3. Reset..."></textarea>
+  </div>
+
+  <div class="field">
+    <label>Solução aplicada / observações</label>
+    <textarea id="f-solucao" placeholder="O que resolveu, peça trocada, causa raiz..."></textarea>
+  </div>
+
+  <div class="sheet-buttons">
+    <button class="btn-cancel" onclick="closeSheet()">Cancelar</button>
+    <button class="btn-save" onclick="saveEntry()">Salvar</button>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'problemas-solda-entries';
+let entries = [];
+let editingId = null;
+let activeFilter = 'todos';
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    entries = raw ? JSON.parse(raw) : seedData();
+    if(!raw) save();
+  }catch(e){
+    entries = seedData();
+  }
+}
+function save(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+}
+
+function seedData(){
+  return [
+    {
+      id: cryptoId(),
+      maquina: 'Robô 2 (rob2_5 - eixo 5)',
+      codigo: '34318',
+      titulo: 'Erro de saturação do inversor do acionador',
+      data: new Date().toISOString().slice(0,10),
+      status: 'pendente',
+      momento: 'A confirmar: durante movimento específico do eixo 5 ou ao ligar Motors On',
+      descricao: 'O módulo de potência acionador do eixo 5 do robô 2 (rob2_5) atingiu a voltagem máxima de saída sem conseguir mover/controlar a junta adequadamente. A facilidade da solução varia: se for apenas um travamento mecânico pontual ou problema de cabo, resolve em minutos; se houver um curto ou falha interna na placa/módulo (Drive Unit) ou no motor, exigirá troca de componente.',
+      passos: [
+        'Checagem Mecânica e Carga: verificar se o eixo 5 não está sofrendo interferência mecânica, colisão, travamento ou sobrecarga física no momento do movimento. Tentar mover o eixo manualmente (com freio liberado e segurança acionada) para sentir se há engastamento mecânico.',
+        'Inspeção de Cabos e Conectores: verificar o cabo de força/potência e o cabo do resolver/encoder (sinais e alimentação da controladora ao robô e do pé do robô até o motor da junta 5). Conectores frouxos, pinos amassados ou cabos partidos/prensados dentro do chicote do braço causam esse pico de tensão.',
+        'Reinicialização e Reset: confirmar o alarme no FlexPendant e tentar ligar os motores (Motors On). Se o erro voltar imediatamente ao energizar os motores, é provável curto/falha elétrica ou no inversor. Se só ocorrer durante o movimento do eixo 5, indica travamento mecânico, esforço excessivo ou mau contato num cabo dinâmico.',
+        'Parâmetros e Configuração: se o robô passou por manutenção recente, restauração de backup ou troca de motor, verificar se os parâmetros de configuração do motor da junta 5 estão corretos no sistema de acionamento.',
+        'Teste do Módulo de Acionamento (Drive Module): se cabos e mecânica estiverem 100%, medir isolamento/continuidade do motor do eixo 5 e testar substituir o módulo inversor do acionador no painel para confirmar se o transistor de potência (IGBT/Drive Unit) queimou.'
+      ],
+      solucao: ''
+    },
+    {
+      id: cryptoId(),
+      maquina: 'MS007',
+      codigo: 'EXT',
+      titulo: 'Mensagem EXT no comando Tecsim TC 600',
+      data: new Date().toISOString().slice(0,10),
+      status: 'pendente',
+      momento: '',
+      descricao: 'O indicativo EXT no display do comando de solda Tecsim TC 600 refere-se a Interrupção/Bloqueio Externo (External Disable/Interlock). Quando essa mensagem aparece ou pisca, o comando entende que alguma condição de segurança externa não foi atendida ou que um sinal de permissão caiu, interrompendo o ciclo e impedindo o disparo da corrente de solda.',
+      passos: [
+        'Sinal de Habilitação do PLC/CLP: verificar oscilação ou mau contato nos bornes de entrada de liberação do comando TC 600.',
+        'Sensores de Posição do Cilindro/Cabeçote: checar falha momentânea no sensor de avanço do eletrodo ou no pressostato durante a aproximação.',
+        'Circuito de Emergência / Interlock: verificar contatos auxiliares de botões de emergência, chaves de porta de proteção ou relés de segurança com folga mecânica ou oxidação.',
+        'Pressão de Ar Oscilante: checar queda repentina de pressão na linha pneumática ou desregulagem no pressostato acionando o bloqueio por segurança.',
+        'Fiação Solta: verificar cabos de sinal de entrada com mau contato devido à vibração do equipamento.'
+      ],
+      solucao: ''
+    }
+  ];
+}
+
+function cryptoId(){
+  return 'e' + Date.now() + Math.random().toString(36).slice(2,8);
+}
+
+function machineList(){
+  const set = new Set(entries.map(e => e.maquina).filter(Boolean));
+  return Array.from(set);
+}
+
+function renderFilters(){
+  const wrap = document.getElementById('filters');
+  const machines = machineList();
+  let html = `<button class="chip ${activeFilter==='todos'?'active':''}" onclick="setFilter('todos')">Todos</button>`;
+  html += `<button class="chip ${activeFilter==='pendente'?'active':''}" onclick="setFilter('pendente')">Pendentes</button>`;
+  html += `<button class="chip ${activeFilter==='resolvido'?'active':''}" onclick="setFilter('resolvido')">Resolvidos</button>`;
+  machines.forEach(m=>{
+    html += `<button class="chip ${activeFilter===m?'active':''}" onclick="setFilter('${m.replace(/'/g,"\\'")}')">${m}</button>`;
+  });
+  wrap.innerHTML = html;
+}
+
+function setFilter(f){
+  activeFilter = f;
+  render();
+}
+
+function matchesFilter(e){
+  if(activeFilter==='todos') return true;
+  if(activeFilter==='pendente') return e.status==='pendente';
+  if(activeFilter==='resolvido') return e.status==='resolvido';
+  return e.maquina === activeFilter;
+}
+
+function formatDate(d){
+  if(!d) return '';
+  const [y,m,day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+
+function render(){
+  renderFilters();
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const list = document.getElementById('list');
+  const countEl = document.getElementById('count');
+
+  let filtered = entries.filter(matchesFilter);
+  if(q){
+    filtered = filtered.filter(e=>{
+      const blob = [e.maquina,e.codigo,e.titulo,e.descricao,e.solucao,e.momento,(e.passos||[]).join(' ')].join(' ').toLowerCase();
+      return blob.includes(q);
+    });
+  }
+  filtered.sort((a,b)=> (b.data||'').localeCompare(a.data||''));
+
+  countEl.textContent = filtered.length === 1 ? '1 registro' : `${filtered.length} registros`;
+
+  if(filtered.length===0){
+    list.innerHTML = `<div class="empty"><p class="big">Nenhum registro encontrado</p><p class="small">Toque em + para cadastrar um problema.</p></div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(e => `
+    <div class="card status-${e.status}" id="card-${e.id}">
+      <div class="card-head" onclick="toggleCard('${e.id}')">
+        <div class="card-top">
+          <div>
+            <div class="card-ids">
+              ${e.maquina ? `<span class="tag">${escapeHtml(e.maquina)}</span>` : ''}
+              ${e.codigo ? `<span class="tag err mono">#${escapeHtml(e.codigo)}</span>` : ''}
+            </div>
+            <p class="card-title">${escapeHtml(e.titulo || 'Sem título')}</p>
+          </div>
+          <span class="card-date mono">${formatDate(e.data)}</span>
+        </div>
+        <span class="status-badge ${e.status}">${e.status==='resolvido' ? '● Resolvido' : '● Pendente'}</span>
+      </div>
+      <div class="card-body">
+        ${e.momento ? `<div class="block"><p class="block-label">MOMENTO DA FALHA</p><p>${escapeHtml(e.momento)}</p></div>` : ''}
+        ${e.descricao ? `<div class="block"><p class="block-label">DESCRIÇÃO</p><p>${escapeHtml(e.descricao)}</p></div>` : ''}
+        ${(e.passos && e.passos.length) ? `<div class="block"><p class="block-label">DIAGNÓSTICO / PASSOS</p><ol class="steps">${e.passos.map(p=>`<li>${escapeHtml(p)}</li>`).join('')}</ol></div>` : ''}
+        ${e.solucao ? `<div class="block"><p class="block-label">SOLUÇÃO APLICADA</p><p>${escapeHtml(e.solucao)}</p></div>` : ''}
+        <div class="card-actions">
+          <button onclick="editEntry('${e.id}', event)">Editar</button>
+          <button class="danger" onclick="deleteEntry('${e.id}', event)">Excluir</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function toggleCard(id){
+  document.getElementById('card-'+id).classList.toggle('open');
+}
+
+function openSheet(entry){
+  editingId = entry ? entry.id : null;
+  document.getElementById('sheetTitle').textContent = entry ? 'Editar problema' : 'Novo problema';
+  document.getElementById('f-maquina').value = entry ? entry.maquina : '';
+  document.getElementById('f-codigo').value = entry ? entry.codigo : '';
+  document.getElementById('f-titulo').value = entry ? entry.titulo : '';
+  document.getElementById('f-data').value = entry ? entry.data : new Date().toISOString().slice(0,10);
+  document.getElementById('f-status').value = entry ? entry.status : 'pendente';
+  document.getElementById('f-momento').value = entry ? entry.momento : '';
+  document.getElementById('f-descricao').value = entry ? entry.descricao : '';
+  document.getElementById('f-passos').value = entry ? (entry.passos||[]).join('\n') : '';
+  document.getElementById('f-solucao').value = entry ? entry.solucao : '';
+
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('sheet').classList.add('show');
+}
+
+function closeSheet(){
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('sheet').classList.remove('show');
+  editingId = null;
+}
+
+function saveEntry(){
+  const titulo = document.getElementById('f-titulo').value.trim();
+  if(!titulo){
+    alert('Dê um título para o problema.');
+    return;
+  }
+  const passosRaw = document.getElementById('f-passos').value.trim();
+  const passos = passosRaw ? passosRaw.split('\n').map(p=>p.replace(/^\d+[\.\)]\s*/,'').trim()).filter(Boolean) : [];
+
+  const data = {
+    maquina: document.getElementById('f-maquina').value.trim(),
+    codigo: document.getElementById('f-codigo').value.trim(),
+    titulo,
+    data: document.getElementById('f-data').value,
+    status: document.getElementById('f-status').value,
+    momento: document.getElementById('f-momento').value.trim(),
+    descricao: document.getElementById('f-descricao').value.trim(),
+    passos,
+    solucao: document.getElementById('f-solucao').value.trim()
+  };
+
+  if(editingId){
+    const idx = entries.findIndex(e=>e.id===editingId);
+    if(idx>-1) entries[idx] = {...entries[idx], ...data};
+  }else{
+    entries.push({id: cryptoId(), ...data});
+  }
+  save();
+  closeSheet();
+  render();
+}
+
+function editEntry(id, evt){
+  evt.stopPropagation();
+  const entry = entries.find(e=>e.id===id);
+  if(entry) openSheet(entry);
+}
+
+function deleteEntry(id, evt){
+  evt.stopPropagation();
+  if(confirm('Excluir este registro?')){
+    entries = entries.filter(e=>e.id!==id);
+    save();
+    render();
+  }
+}
+
+document.getElementById('search').addEventListener('input', render);
+
+load();
+render();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
